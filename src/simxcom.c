@@ -166,7 +166,7 @@ void die(const char *message, ...)
     va_list ap;
 
     va_start(ap, message);
-    fprintf(stderr, "%s: ", PROGRAM_NAME);
+    fprintf(stderr, "%s: ", "delete this");
     vfprintf(stderr, message, ap);
     fputc('\n', stderr);
     va_end(ap);
@@ -174,7 +174,7 @@ void die(const char *message, ...)
 }
 
 void usage() {
-    printf("usage: %s [options]\n%s", PROGRAM_NAME,
+    printf("usage: %s [options]\n%s", "delete this",
            "where options are:\n"
            "-ac <hex_color>\n"
            "-ic <hex_color>\n"
@@ -190,6 +190,8 @@ int htoi(char c)
     for(int i = 0; i < 16; i++)
         if(c == hex[i])
             return i;
+
+    return 0;
 }
 
 double round_to(double x, double dp)
@@ -291,7 +293,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
     if(version) {
-        fprintf(stdout, "%s %s\n", PROGRAM_NAME, VERSION);
+        fprintf(stdout, "%s %s\n", "delete this", "no version");
         exit(EXIT_SUCCESS);
     }
 
@@ -368,15 +370,15 @@ int main(int argc, char **argv)
                 if(inactive_windows) {
                     for(int i = 0; i < n_windows; i++)
                         XDestroyWindow(dpy, iw_overlays[i]);
-                    free(iw_crs);
-                    free(iw_surfs);
-                    free(iw_overlays);
-                    free(inactive_windows);
                     inactive_windows = get_inactive_windows(dpy, root,
                         active_window, (unsigned long *)&n_windows);
                     iw_overlays = overlay_inactive(dpy, root, vinfo,
                         inactive_windows, n_windows, iw_surfs, iw_crs,
                         ic, iww, iwh);
+                    free(iw_crs);
+                    free(iw_surfs);
+                    free(iw_overlays);
+                    free(inactive_windows);
                 }
             }
         }
