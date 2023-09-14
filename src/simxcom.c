@@ -91,32 +91,33 @@ void draw_rectangle(cairo_t *cr, int x, int y, int w, int h, Color c)
     cairo_fill(cr);
 }
 
-Window overlay_active(Display *dpy, Window root, XVisualInfo vinfo,
+Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     Window active, cairo_surface_t* surf, cairo_t* cr, int width, int height,
     Color color)
 {
     Window r;
     int x, y;
     unsigned int w, h, bw, d;
-    XGetGeometry(dpy, active, &r, &x, &y, &w, &h, &bw, &d);
+    XGetGeometry(display, active, &r, &x, &y, &w, &h, &bw, &d);
 
     XSetWindowAttributes attrs;
-    attrs.colormap = XCreateColormap(dpy, root, vinfo.visual, AllocNone);
-    attrs.border_pixel = 0;
-    unsigned long value_mask = CWColormap | CWBorderPixel;
+    // attrs.colormap = XCreateColormap(display, root, vinfo.visual, AllocAll);
+    // attrs.border_pixel = 0;
+    unsigned long value_mask = 0; // CWColormap | CWBorderPixel;
     
     x = w - width;
     y = 0;
+    exit(1);
 
-    Window overlay = XCreateWindow(dpy, active, x, y, width, height, 0,
+    Window overlay = XCreateWindow(display, active, x, y, width, height, 0 /* border */,
         vinfo.depth, InputOutput, vinfo.visual, value_mask, &attrs);
-    XMapWindow(dpy, overlay);
+    XMapWindow(display, overlay);
 
-    surf = cairo_xlib_surface_create(dpy, overlay, vinfo.visual, width, height);
+    surf = cairo_xlib_surface_create(display, overlay, vinfo.visual, width, height);
     cr = cairo_create(surf);
 
     draw_rectangle(cr, 0, 0, width, height, color);
-    XFlush(dpy);
+    XFlush(display);
 
     return overlay;
 }
@@ -173,56 +174,6 @@ void die(const char *message, ...)
     exit(EXIT_FAILURE);
 }
 
-void usage() {
-    printf("usage: %s [options]\n%s", "delete this",
-           "where options are:\n"
-           "-ac <hex_color>\n"
-           "-ic <hex_color>\n"
-           "-ag <width>x<height>\n"
-           "-ig <width>x<height>\n");
-}
-
-int htoi(char c)
-{
-    c = tolower(c);
-    char hex[16] = "0123456789abcdef";
-
-    for(int i = 0; i < 16; i++)
-        if(c == hex[i])
-            return i;
-
-    return 0;
-}
-
-double round_to(double x, double dp)
-{
-    return round(x * pow(10, dp)) / pow(10, dp);
-}
-
-Color parse_color(char *str)
-{
-    if(strlen(str) != 8)
-        die("invalid color argument: '%s'", str);
-    else if(str[0] != '0' || str[1] != 'x')
-        die("invalid color argument: '%s'", str);
-    for(int i = 2; i < 8; i++)
-        if(!isxdigit(str[i]))
-            die("invalid color argument: '%s'", str);
-
-    double r, g, b; 
-    r = (htoi(str[2]) * 16 + htoi(str[3])) / 255.0;
-    g = (htoi(str[4]) * 16 + htoi(str[5])) / 255.0;
-    b = (htoi(str[6]) * 16 + htoi(str[7])) / 255.0;
-
-    Color color;
-    color.red   = round_to(r, 2);
-    color.green = round_to(g, 2);
-    color.blue  = round_to(b, 2);
-    color.alpha = 1.0;
-
-    return color;
-}
-
 int main(int argc, char **argv)
 {
     bool quit = false;
@@ -230,17 +181,11 @@ int main(int argc, char **argv)
     
     /* Parse command line arguments */
     Color ac;
-    bool ac_set = false;
     Color ic;
-    bool ic_set = false;
     int bw , bh;
-    bool box_size_set = false;
     int iww, iwh;
-    bool iw_size_set = false;
 
-    Display *dpy = XOpenDisplay(NULL);
-    if(!dpy)
-        die("failed to open display");
+    Display *dpy = XOpenDisplay(NULL); if(!dpy) exit(EXIT_FAILURE);
 
     int screen = DefaultScreen(dpy);
     Window root = RootWindow(dpy, screen);
@@ -252,7 +197,7 @@ int main(int argc, char **argv)
     long root_event_mask = PropertyChangeMask;
     XSelectInput(dpy, root, root_event_mask);
 
-    Atom net_active_window = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", True);
+    // Atom net_active_window = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", True);
     
     Window active_window = get_active_window(dpy, root);
 
@@ -260,18 +205,13 @@ int main(int argc, char **argv)
     Window *inactive_windows = get_inactive_windows(dpy, root,
         active_window, (unsigned long *)&n_windows);
 
-    if(!ac_set) {
-        ac.alpha = ac.red   = 1.0;
-        ac.green = ac.blue  = 0.0;
-    }
-    if(!ic_set) {
-        ic.alpha = ic.red   = 1.0;
-        ic.green = ic.blue  = 0.0;
-    }
-    if(!box_size_set)
-        bw = bh = 50;
-    if(!iw_size_set)
-        iww = iwh = 0;
+    ac.alpha = ac.red   = 1.0;
+    ac.green = ac.blue  = 0.0;
+    ic.alpha = ic.red   = 1.0;
+    ic.green = ic.blue  = 0.0;
+    bw = bh = 50;
+    iww = iwh = 0;
+
 
     Window aw_overlay;
     cairo_surface_t *aw_surf = NULL;
@@ -291,13 +231,13 @@ int main(int argc, char **argv)
 
     do {
         XEvent event;
-        XPropertyEvent property_event;
+        // XPropertyEvent property_event;
         XNextEvent(dpy, &event);
 
-        if(event.type == PropertyNotify) {
+        /* if(event.type == PropertyNotify) {
             property_event = event.xproperty;
             if(property_event.atom == net_active_window) {
-                if(active_window) { /* destroy previous aw_overlay window */
+                if(active_window) { // destroy previous aw_overlay window
                     cairo_destroy(aw_cr);
                     cairo_surface_destroy(aw_surf);
                     XDestroyWindow(dpy, aw_overlay);
@@ -321,7 +261,7 @@ int main(int argc, char **argv)
                     free(inactive_windows);
                 }
             }
-        }
+        } */
     } while(!quit);
 
     cairo_destroy(aw_cr);
