@@ -1,0 +1,4 @@
+(rule
+ (targets sim)
+ (deps    (:src simxcom.c))
+ (action  (run gcc -Wall -Werror -lX11 -lcairo -lm %{src} -o %{targets})))
