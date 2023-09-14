@@ -229,8 +229,6 @@ int main(int argc, char **argv)
     /* int exit_code = 0; */
     
     /* Parse command line arguments */
-    bool help = false;
-    bool version = false;
     Color ac;
     bool ac_set = false;
     Color ic;
@@ -239,64 +237,6 @@ int main(int argc, char **argv)
     bool box_size_set = false;
     int iww, iwh;
     bool iw_size_set = false;
-
-    for(int i = 1; i < argc; i++) {
-        if(!strcmp("-help", argv[i]) || !strcmp("--help", argv[i])) {
-            help = true;
-            break;
-        }
-        if(!strcmp("-v", argv[i]) || !strcmp("--version", argv[i])) {
-            version = true;
-            break;
-        }
-        if(!strcmp("-ac", argv[i])) {
-            if(++i >= argc)
-                die("%s requires an argument", argv[i-1]);
-            ac = parse_color(argv[i]);
-            ac_set = true;
-            continue;
-        }
-        if(!strcmp("-ic", argv[i])) {
-            if(++i >= argc)
-                die("%s requires an argument", argv[i-1]);
-            ic = parse_color(argv[i]);
-            ic_set = true;
-            continue;
-        }
-        if(!strcmp("-ag", argv[i])) {
-            if(++i >= argc)
-                die("%s requires an argument", argv[i-1]);
-            if(sscanf(argv[i], "%dx%d", &bw, &bh) == 2)
-                box_size_set = true;
-            else
-                die("invalid size argument: '%s'", argv[i]);
-            if(bw <= 0 || bh <= 0)
-                die("box geometry must be greater than zero");
-            continue;
-        }
-        if(!strcmp("-ig", argv[i])) {
-            if(++i >= argc)
-                die("%s requires an argument", argv[i-1]);
-            if(sscanf(argv[i], "%dx%d", &iww, &iwh) == 2)
-                iw_size_set = true;
-            else
-                die("invalid size argument: '%s'", argv[i]);
-            if(iww <= 0 || iwh <= 0)
-                die("inactive window geometry must be greater than zero");
-            continue;
-        }
-        die("unrecognized option '%s'", argv[i]);
-    }
-
-    if(help) {
-        usage();
-        exit(EXIT_SUCCESS);
-    }
-    if(version) {
-        fprintf(stdout, "%s %s\n", "delete this", "no version");
-        exit(EXIT_SUCCESS);
-    }
-
 
     Display *dpy = XOpenDisplay(NULL);
     if(!dpy)
