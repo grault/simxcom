@@ -100,17 +100,11 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     unsigned int w, h, bw, d;
     XGetGeometry(display, active, &r, &x, &y, &w, &h, &bw, &d);
 
-    XSetWindowAttributes attrs;
-    // attrs.colormap = XCreateColormap(display, root, vinfo.visual, AllocAll);
-    // attrs.border_pixel = 0;
-    unsigned long value_mask = 0; // CWColormap | CWBorderPixel;
     
     x = w - width;
     y = 0;
-    exit(1);
 
-    Window overlay = XCreateWindow(display, active, x, y, width, height, 0 /* border */,
-        vinfo.depth, InputOutput, vinfo.visual, value_mask, &attrs);
+    Window overlay = XCreateSimpleWindow(display, active, x, y, width, height, 0, 0 /* border */, 0);
     XMapWindow(display, overlay);
 
     surf = cairo_xlib_surface_create(display, overlay, vinfo.visual, width, height);
@@ -120,46 +114,6 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     XFlush(display);
 
     return overlay;
-}
-
-Window *overlay_inactive(Display *dpy, Window root, XVisualInfo vinfo,
-    Window *windows, int n_windows, cairo_surface_t **surfs, cairo_t **crs,
-    Color color, int width, int height)
-{
-    Window *inactive_overlays = (Window *)malloc(n_windows * sizeof(Window));
-    surfs = (cairo_surface_t **)malloc(n_windows * sizeof(cairo_surface_t*));
-    crs = (cairo_t **)malloc(n_windows * sizeof(cairo_t*));
-
-    XSetWindowAttributes attrs;
-    attrs.colormap = XCreateColormap(dpy, root, vinfo.visual, AllocNone);
-    attrs.border_pixel = 0;
-    unsigned long value_mask = CWColormap | CWBorderPixel;
-
-    for(int i = 0; i < n_windows; i++) {
-        Window current = windows[i];
-        if(width != 0 && height != 0)
-            XResizeWindow(dpy, current, (unsigned int)width,
-                (unsigned int)height);
-        Window r;
-        int x, y;
-        unsigned int w, h, bw, d;
-        XGetGeometry(dpy, current, &r, &x, &y, &w, &h, &bw, &d);
-
-        Window overlay = XCreateWindow(dpy, current, 0, 0, w, h, 0,
-        vinfo.depth, InputOutput, vinfo.visual, value_mask, &attrs);
-
-        XMapWindow(dpy, overlay);
-
-        surfs[i] = cairo_xlib_surface_create(dpy, overlay, vinfo.visual, w, h);
-        crs[i] = cairo_create(surfs[i]);
-
-        draw_rectangle(crs[i], 0, 0, w, h, color);
-        XFlush(dpy);
-
-        inactive_overlays[i] = overlay;
-    }
-
-    return inactive_overlays;
 }
 
 void die(const char *message, ...)
@@ -183,7 +137,6 @@ int main(int argc, char **argv)
     Color ac;
     Color ic;
     int bw , bh;
-    int iww, iwh;
 
     Display *dpy = XOpenDisplay(NULL); if(!dpy) exit(EXIT_FAILURE);
 
@@ -197,7 +150,7 @@ int main(int argc, char **argv)
     long root_event_mask = PropertyChangeMask;
     XSelectInput(dpy, root, root_event_mask);
 
-    // Atom net_active_window = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", True);
+    Atom net_active_window = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", True);
     
     Window active_window = get_active_window(dpy, root);
 
@@ -210,7 +163,6 @@ int main(int argc, char **argv)
     ic.alpha = ic.red   = 1.0;
     ic.green = ic.blue  = 0.0;
     bw = bh = 50;
-    iww = iwh = 0;
 
 
     Window aw_overlay;
@@ -225,16 +177,13 @@ int main(int argc, char **argv)
         aw_overlay = overlay_active(dpy, root, vinfo, active_window,
             aw_surf, aw_cr, bw, bh, ac);
 
-    if(inactive_windows)
-        iw_overlays = overlay_inactive(dpy, root, vinfo, inactive_windows,
-            n_windows, iw_surfs, iw_crs, ic, iww, iwh);
 
     do {
         XEvent event;
-        // XPropertyEvent property_event;
+        XPropertyEvent property_event;
         XNextEvent(dpy, &event);
 
-        /* if(event.type == PropertyNotify) {
+        if(event.type == PropertyNotify) {
             property_event = event.xproperty;
             if(property_event.atom == net_active_window) {
                 if(active_window) { // destroy previous aw_overlay window
@@ -247,21 +196,8 @@ int main(int argc, char **argv)
                     aw_overlay = overlay_active(dpy, root, vinfo,
                         active_window, aw_surf, aw_cr, bw, bh, ac);
 
-                if(inactive_windows) {
-                    for(int i = 0; i < n_windows; i++)
-                        XDestroyWindow(dpy, iw_overlays[i]);
-                    inactive_windows = get_inactive_windows(dpy, root,
-                        active_window, (unsigned long *)&n_windows);
-                    iw_overlays = overlay_inactive(dpy, root, vinfo,
-                        inactive_windows, n_windows, iw_surfs, iw_crs,
-                        ic, iww, iwh);
-                    free(iw_crs);
-                    free(iw_surfs);
-                    free(iw_overlays);
-                    free(inactive_windows);
-                }
             }
-        } */
+        }
     } while(!quit);
 
     cairo_destroy(aw_cr);
