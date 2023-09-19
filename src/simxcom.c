@@ -38,33 +38,16 @@ Window get_active_window(Display *display, Window root)
         return None;
 }
 
-Window *get_inactive_windows(Display *display, Window root, Window active_window,
+void query_net_client_list(Display *display, Window root, Window active_window,
                             unsigned long *n_windows)
 {
     Atom prop = XInternAtom(display, "_NET_CLIENT_LIST", True), type;
-    Window *client_windows, *inactive_windows;
     int format;
     unsigned long extra;
     unsigned char *result = NULL;
 
-    if(XGetWindowProperty(display, root, prop, 0, 1024, False, XA_WINDOW, &type,
-        &format, n_windows, &extra, &result) == Success && result) {
-            client_windows = (Window *)result;
-            if(active_window)
-                (*n_windows)--;
-            inactive_windows = (Window *)malloc(*n_windows * sizeof(Window));
-
-            for(int i = 0, j = 0; i < *n_windows + 1; i++) {
-                if(client_windows[i] != active_window) {
-                    inactive_windows[j] = client_windows[i];
-                    j++;
-                }
-            }
-            XFree(client_windows);
-            return inactive_windows;
-    }
-    else
-        return NULL;
+    XGetWindowProperty(display, root, prop, 0, 1024, False, XA_WINDOW, &type,
+        &format, n_windows, &extra, &result);
 }
 
 void draw_rectangle(cairo_t *cr, int x, int y, int w, int h, Color c)
@@ -138,8 +121,7 @@ int main(int argc, char **argv)
     Window active_window = get_active_window(display, root);
 
     int n_windows;
-    Window *inactive_windows = get_inactive_windows(display, root,
-        active_window, (unsigned long *)&n_windows);
+    query_net_client_list(display, root, active_window, (unsigned long *)&n_windows);
 
     ac.alpha = 0.5; ac.red   = 1.0;
     ac.green = ac.blue  = 0.0;
@@ -180,7 +162,6 @@ int main(int argc, char **argv)
     cairo_surface_destroy(aw_surf);
     XDestroyWindow(display, aw_overlay);
 
-    free(inactive_windows);
     XCloseDisplay(display);
     return EXIT_SUCCESS;
 }
