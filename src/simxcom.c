@@ -67,23 +67,6 @@ Window *get_inactive_windows(Display *display, Window root, Window active_window
         return NULL;
 }
 
-char *get_window_name(Display *display, Window window)
-{
-    Atom prop = XInternAtom(display, "WM_NAME", False), type;
-    int format;
-    unsigned long extra, len;
-    unsigned char *result;
-
-    if(window == None)
-        return NULL;
-
-    if(XGetWindowProperty(display, window, prop, 0, 1024, False, AnyPropertyType,
-        &type, &format, &len, &extra, &result) == Success && result)
-            return (char*)result;
-    else
-        return NULL;
-}
-
 void draw_rectangle(cairo_t *cr, int x, int y, int w, int h, Color c)
 {
     cairo_set_source_rgba(cr, c.red, c.green, c.blue, c.alpha);
