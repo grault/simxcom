@@ -38,8 +38,7 @@ Window get_active_window(Display *display, Window root)
         return None;
 }
 
-void query_net_client_list(Display *display, Window root, Window active_window,
-                            unsigned long *n_windows)
+void query_net_client_list(Display *display, Window root, unsigned long *n_windows)
 {
     Atom prop = XInternAtom(display, "_NET_CLIENT_LIST", True), type;
     int format;
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
     Window active_window = get_active_window(display, root);
 
     int n_windows;
-    query_net_client_list(display, root, active_window, (unsigned long *)&n_windows);
+    query_net_client_list(display, root, (unsigned long *)&n_windows);
 
     ac.alpha = 0.5; ac.red   = 1.0;
     ac.green = ac.blue  = 0.0;
