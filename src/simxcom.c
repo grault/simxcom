@@ -20,15 +20,15 @@ typedef struct {
     float alpha;
 } Color;
 
-Window get_active_window(Display *dpy, Window root)
+Window get_active_window(Display *display, Window root)
 {
-    Atom prop = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", True), type;
+    Atom prop = XInternAtom(display, "_NET_ACTIVE_WINDOW", True), type;
     Window active;
     int format;
     unsigned long len, extra;
     unsigned char *result = NULL;
 
-    if(XGetWindowProperty(dpy, root, prop, 0L, sizeof(active), False, XA_WINDOW,
+    if(XGetWindowProperty(display, root, prop, 0L, sizeof(active), False, XA_WINDOW,
         &type, &format, &len, &extra, &result) == Success && result) {
             active = *(Window *)result;
             XFree(result);
@@ -38,16 +38,16 @@ Window get_active_window(Display *dpy, Window root)
         return None;
 }
 
-Window *get_inactive_windows(Display *dpy, Window root, Window active_window,
+Window *get_inactive_windows(Display *display, Window root, Window active_window,
                             unsigned long *n_windows)
 {
-    Atom prop = XInternAtom(dpy, "_NET_CLIENT_LIST", True), type;
+    Atom prop = XInternAtom(display, "_NET_CLIENT_LIST", True), type;
     Window *client_windows, *inactive_windows;
     int format;
     unsigned long extra;
     unsigned char *result = NULL;
 
-    if(XGetWindowProperty(dpy, root, prop, 0, 1024, False, XA_WINDOW, &type,
+    if(XGetWindowProperty(display, root, prop, 0, 1024, False, XA_WINDOW, &type,
         &format, n_windows, &extra, &result) == Success && result) {
             client_windows = (Window *)result;
             if(active_window)
@@ -67,9 +67,9 @@ Window *get_inactive_windows(Display *dpy, Window root, Window active_window,
         return NULL;
 }
 
-char *get_window_name(Display *dpy, Window window)
+char *get_window_name(Display *display, Window window)
 {
-    Atom prop = XInternAtom(dpy, "WM_NAME", False), type;
+    Atom prop = XInternAtom(display, "WM_NAME", False), type;
     int format;
     unsigned long extra, len;
     unsigned char *result;
@@ -77,7 +77,7 @@ char *get_window_name(Display *dpy, Window window)
     if(window == None)
         return NULL;
 
-    if(XGetWindowProperty(dpy, window, prop, 0, 1024, False, AnyPropertyType,
+    if(XGetWindowProperty(display, window, prop, 0, 1024, False, AnyPropertyType,
         &type, &format, &len, &extra, &result) == Success && result)
             return (char*)result;
     else
@@ -138,24 +138,24 @@ int main(int argc, char **argv)
     /* Parse command line arguments */
     Color ac;
 
-    Display *dpy = XOpenDisplay(NULL); if(!dpy) exit(EXIT_FAILURE);
+    Display *display = XOpenDisplay(NULL); if(!display) exit(EXIT_FAILURE);
 
-    int screen = DefaultScreen(dpy);
-    Window root = RootWindow(dpy, screen);
+    int screen = DefaultScreen(display);
+    Window root = RootWindow(display, screen);
 
     XVisualInfo vinfo;
-    if (!XMatchVisualInfo(dpy, screen, 32, TrueColor, &vinfo))
+    if (!XMatchVisualInfo(display, screen, 32, TrueColor, &vinfo))
         die("32-bit color not supported");
     
     long root_event_mask = PropertyChangeMask;
-    XSelectInput(dpy, root, root_event_mask);
+    XSelectInput(display, root, root_event_mask);
 
-    Atom net_active_window = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", True);
+    Atom net_active_window = XInternAtom(display, "_NET_ACTIVE_WINDOW", True);
     
-    Window active_window = get_active_window(dpy, root);
+    Window active_window = get_active_window(display, root);
 
     int n_windows;
-    Window *inactive_windows = get_inactive_windows(dpy, root,
+    Window *inactive_windows = get_inactive_windows(display, root,
         active_window, (unsigned long *)&n_windows);
 
     ac.alpha = 0.5; ac.red   = 1.0;
@@ -171,14 +171,14 @@ int main(int argc, char **argv)
     cairo_t **iw_crs = NULL;
 
     if(active_window)
-        aw_overlay = overlay_active(dpy, root, vinfo, active_window,
+        aw_overlay = overlay_active(display, root, vinfo, active_window,
             aw_surf, aw_cr, ac);
 
 
     do {
         XEvent event;
         XPropertyEvent property_event;
-        XNextEvent(dpy, &event);
+        XNextEvent(display, &event);
 
         if(event.type == PropertyNotify) {
             property_event = event.xproperty;
@@ -186,11 +186,11 @@ int main(int argc, char **argv)
                 if(active_window) { // destroy previous aw_overlay window
                     cairo_destroy(aw_cr);
                     cairo_surface_destroy(aw_surf);
-                    XDestroyWindow(dpy, aw_overlay);
+                    XDestroyWindow(display, aw_overlay);
                 }
-                active_window = get_active_window(dpy, root);
+                active_window = get_active_window(display, root);
                 if(active_window)
-                    aw_overlay = overlay_active(dpy, root, vinfo,
+                    aw_overlay = overlay_active(display, root, vinfo,
                         active_window, aw_surf, aw_cr, ac);
 
             }
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 
     cairo_destroy(aw_cr);
     cairo_surface_destroy(aw_surf);
-    XDestroyWindow(dpy, aw_overlay);
+    XDestroyWindow(display, aw_overlay);
 
     for(int i = 0; i < n_windows; i++)
         cairo_destroy(iw_crs[i]);
@@ -208,6 +208,6 @@ int main(int argc, char **argv)
     free(iw_overlays);
 
     free(inactive_windows);
-    XCloseDisplay(dpy);
+    XCloseDisplay(display);
     return EXIT_SUCCESS;
 }
