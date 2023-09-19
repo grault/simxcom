@@ -92,7 +92,7 @@ void draw_rectangle(cairo_t *cr, int x, int y, int w, int h, Color c)
 }
 
 Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
-    Window active, cairo_surface_t* surf, cairo_t* cr, int width, int height,
+    Window active, cairo_surface_t* surf, cairo_t* cr,
     Color color)
 {
     Window r;
@@ -100,6 +100,7 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     unsigned int w, h, bw, d;
     XGetGeometry(display, active, &r, &x, &y, &w, &h, &bw, &d);
 
+    int width, height;
     width = height = fmin(w/3, h/3);
     
     x = (w - width)/2;
@@ -136,8 +137,6 @@ int main(int argc, char **argv)
     
     /* Parse command line arguments */
     Color ac;
-    Color ic;
-    int bw , bh;
 
     Display *dpy = XOpenDisplay(NULL); if(!dpy) exit(EXIT_FAILURE);
 
@@ -159,11 +158,8 @@ int main(int argc, char **argv)
     Window *inactive_windows = get_inactive_windows(dpy, root,
         active_window, (unsigned long *)&n_windows);
 
-    ac.alpha = ac.red   = 1.0;
+    ac.alpha = 0.5; ac.red   = 1.0;
     ac.green = ac.blue  = 0.0;
-    ic.alpha = ic.red   = 1.0;
-    ic.green = ic.blue  = 0.0;
-    bw = bh = 50;
 
 
     Window aw_overlay;
@@ -176,7 +172,7 @@ int main(int argc, char **argv)
 
     if(active_window)
         aw_overlay = overlay_active(dpy, root, vinfo, active_window,
-            aw_surf, aw_cr, bw, bh, ac);
+            aw_surf, aw_cr, ac);
 
 
     do {
@@ -195,7 +191,7 @@ int main(int argc, char **argv)
                 active_window = get_active_window(dpy, root);
                 if(active_window)
                     aw_overlay = overlay_active(dpy, root, vinfo,
-                        active_window, aw_surf, aw_cr, bw, bh, ac);
+                        active_window, aw_surf, aw_cr, ac);
 
             }
         }
