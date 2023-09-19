@@ -71,13 +71,13 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     x = (w - width)/2;
     y = (h - height)/2;
 
-    Window overlay = XCreateSimpleWindow(display, active, x, y, width, height, 0, 0, 0);
+    Window overlay = XCreateSimpleWindow(display, active, x, y, width, height, 0, 0, 0xFEFF0000);
     XMapWindow(display, overlay);
 
     surf = cairo_xlib_surface_create(display, overlay, vinfo.visual, width, height);
     cr = cairo_create(surf);
 
-    draw_rectangle(cr, 0, 0, width, height, color);
+    // draw_rectangle(cr, 0, 0, width, height, color);
     XFlush(display);
 
     return overlay;
