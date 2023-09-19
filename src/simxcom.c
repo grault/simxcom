@@ -100,11 +100,12 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     unsigned int w, h, bw, d;
     XGetGeometry(display, active, &r, &x, &y, &w, &h, &bw, &d);
 
+    width = height = fmin(w/3, h/3);
     
-    x = w - width;
-    y = 0;
+    x = (w - width)/2;
+    y = (h - height)/2;
 
-    Window overlay = XCreateSimpleWindow(display, active, x, y, width, height, 0, 0 /* border */, 0);
+    Window overlay = XCreateSimpleWindow(display, active, x, y, width, height, 0, 0, 0);
     XMapWindow(display, overlay);
 
     surf = cairo_xlib_surface_create(display, overlay, vinfo.visual, width, height);
