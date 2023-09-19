@@ -166,8 +166,6 @@ int main(int argc, char **argv)
     cairo_surface_t *aw_surf = NULL;
     cairo_t *aw_cr = NULL;
 
-    cairo_t **iw_crs = NULL;
-
     if(active_window)
         aw_overlay = overlay_active(display, root, vinfo, active_window,
             aw_surf, aw_cr, ac);
@@ -198,10 +196,6 @@ int main(int argc, char **argv)
     cairo_destroy(aw_cr);
     cairo_surface_destroy(aw_surf);
     XDestroyWindow(display, aw_overlay);
-
-    for(int i = 0; i < n_windows; i++)
-        cairo_destroy(iw_crs[i]);
-    free(iw_crs);
 
     free(inactive_windows);
     XCloseDisplay(display);
