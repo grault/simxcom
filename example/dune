@@ -1,0 +1,4 @@
+(rule
+ (targets ex1)
+ (deps    (:src ex1.c))
+ (action  (run gcc -Wunused-function -g -Wunused -Wall --pedantic -Werror -lX11 -lcairo -lXext -lm %{src} -o %{targets})))
