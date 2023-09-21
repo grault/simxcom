@@ -36,18 +36,18 @@ Window get_active_window(Display *display)
         return None;
 }
 
-void query_net_client_list(Display *display, Window root, unsigned long *n_windows)
+void query_net_client_list(Display *display, unsigned long *n_windows)
 {
     Atom prop = XInternAtom(display, "_NET_CLIENT_LIST", True), type;
     int format;
     unsigned long extra;
     unsigned char *result = NULL;
 
-    XGetWindowProperty(display, root, prop, 0, 1024, False, XA_WINDOW, &type,
+    XGetWindowProperty(display, RootWindow(display, DefaultScreen(display)), prop, 0, 1024, False, XA_WINDOW, &type,
         &format, n_windows, &extra, &result);
 }
 
-Window overlay_active(Display *display, Window active)
+Window overlay(Display *display, Window active)
 {
     Window r;
     int x, y;
@@ -95,26 +95,23 @@ int main(int argc, char **argv)
     
     Display *display = XOpenDisplay(NULL); if(!display) exit(EXIT_FAILURE);
 
-    Window root = RootWindow(display, DefaultScreen(display));
-
     XVisualInfo vinfo;
     if (!XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo))
         die("32-bit color not supported");
     
-    long root_event_mask = PropertyChangeMask;
-    XSelectInput(display, root, root_event_mask);
+    XSelectInput(display, RootWindow(display, DefaultScreen(display)), PropertyChangeMask);
 
     Atom net_active_window = XInternAtom(display, "_NET_ACTIVE_WINDOW", True);
     
     Window active_window = get_active_window(display);
 
     int n_windows;
-    query_net_client_list(display, root, (unsigned long *)&n_windows);
+    query_net_client_list(display, (unsigned long *)&n_windows);
 
     Window aw_overlay;
 
     if(active_window)
-        aw_overlay = overlay_active(display, active_window);
+        aw_overlay = overlay(display, active_window);
 
 
     do {
@@ -130,7 +127,7 @@ int main(int argc, char **argv)
                 }
                 active_window = get_active_window(display);
                 if(active_window)
-                    aw_overlay = overlay_active(display, active_window);
+                    aw_overlay = overlay(display, active_window);
 
             }
         }
