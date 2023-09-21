@@ -18,7 +18,7 @@ typedef struct {
     float alpha;
 } Color;
 
-Window get_active_window(Display *display, Window root)
+Window get_active_window(Display *display)
 {
     Atom prop = XInternAtom(display, "_NET_ACTIVE_WINDOW", True), type;
     Window active;
@@ -26,7 +26,7 @@ Window get_active_window(Display *display, Window root)
     unsigned long len, extra;
     unsigned char *result = NULL;
 
-    if(XGetWindowProperty(display, root, prop, 0L, sizeof(active), False, XA_WINDOW,
+    if(XGetWindowProperty(display, RootWindow(display, DefaultScreen(display)), prop, 0L, sizeof(active), False, XA_WINDOW,
         &type, &format, &len, &extra, &result) == Success && result) {
             active = *(Window *)result;
             XFree(result);
@@ -47,7 +47,7 @@ void query_net_client_list(Display *display, Window root, unsigned long *n_windo
         &format, n_windows, &extra, &result);
 }
 
-Window overlay_active(Display *display, Window root, XVisualInfo vinfo, Window active)
+Window overlay_active(Display *display, Window active)
 {
     Window r;
     int x, y;
@@ -60,7 +60,7 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo, Window a
     x = (w - width)/2;
     y = (h - height)/2;
 
-
+    XVisualInfo vinfo;
     XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo);
     XSetWindowAttributes attr;
     attr.colormap = XCreateColormap(display, DefaultRootWindow(display), vinfo.visual, AllocNone);
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
     Atom net_active_window = XInternAtom(display, "_NET_ACTIVE_WINDOW", True);
     
-    Window active_window = get_active_window(display, root);
+    Window active_window = get_active_window(display);
 
     int n_windows;
     query_net_client_list(display, root, (unsigned long *)&n_windows);
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     Window aw_overlay;
 
     if(active_window)
-        aw_overlay = overlay_active(display, root, vinfo, active_window);
+        aw_overlay = overlay_active(display, active_window);
 
 
     do {
@@ -128,9 +128,9 @@ int main(int argc, char **argv)
                 if(active_window) { // destroy previous aw_overlay window
                     XDestroyWindow(display, aw_overlay);
                 }
-                active_window = get_active_window(display, root);
+                active_window = get_active_window(display);
                 if(active_window)
-                    aw_overlay = overlay_active(display, root, vinfo, active_window);
+                    aw_overlay = overlay_active(display, active_window);
 
             }
         }
