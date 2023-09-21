@@ -12,6 +12,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/shape.h>
 
 typedef struct {
     float red;
@@ -57,8 +58,7 @@ void draw_rectangle(cairo_t *cr, int x, int y, int w, int h, Color c)
 }
 
 Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
-    Window active, cairo_surface_t* surf, cairo_t* cr,
-    Color color)
+    Window active, cairo_surface_t* surf, cairo_t* cr)
 {
     Window r;
     int x, y;
@@ -71,13 +71,17 @@ Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
     x = (w - width)/2;
     y = (h - height)/2;
 
-    Window overlay = XCreateSimpleWindow(display, active, x, y, width, height, 0, 0, 0xFEFF0000);
+
+    XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo);
+    XSetWindowAttributes attr;
+    attr.colormap = XCreateColormap(display, DefaultRootWindow(display), vinfo.visual, AllocNone);
+    attr.border_pixel = 0;
+    attr.background_pixel = 0x00FF0000;
+    unsigned int border_width = 0;
+
+    Window overlay = XCreateWindow(display, active, x, y, width, height, border_width, vinfo.depth, InputOutput, vinfo.visual, CWColormap | CWBorderPixel | CWBackPixel, &attr);
+
     XMapWindow(display, overlay);
-
-    surf = cairo_xlib_surface_create(display, overlay, vinfo.visual, width, height);
-    cr = cairo_create(surf);
-
-    // draw_rectangle(cr, 0, 0, width, height, color);
     XFlush(display);
 
     return overlay;
@@ -100,16 +104,12 @@ int main(int argc, char **argv)
     bool quit = false;
     /* int exit_code = 0; */
     
-    /* Parse command line arguments */
-    Color ac;
-
     Display *display = XOpenDisplay(NULL); if(!display) exit(EXIT_FAILURE);
 
-    int screen = DefaultScreen(display);
-    Window root = RootWindow(display, screen);
+    Window root = RootWindow(display, DefaultScreen(display));
 
     XVisualInfo vinfo;
-    if (!XMatchVisualInfo(display, screen, 32, TrueColor, &vinfo))
+    if (!XMatchVisualInfo(display, DefaultScreen(display), 32, TrueColor, &vinfo))
         die("32-bit color not supported");
     
     long root_event_mask = PropertyChangeMask;
@@ -122,17 +122,13 @@ int main(int argc, char **argv)
     int n_windows;
     query_net_client_list(display, root, (unsigned long *)&n_windows);
 
-    ac.alpha = 0.5; ac.red   = 1.0;
-    ac.green = ac.blue  = 0.0;
-
-
     Window aw_overlay;
     cairo_surface_t *aw_surf = NULL;
     cairo_t *aw_cr = NULL;
 
     if(active_window)
         aw_overlay = overlay_active(display, root, vinfo, active_window,
-            aw_surf, aw_cr, ac);
+            aw_surf, aw_cr);
 
 
     do {
@@ -151,7 +147,7 @@ int main(int argc, char **argv)
                 active_window = get_active_window(display, root);
                 if(active_window)
                     aw_overlay = overlay_active(display, root, vinfo,
-                        active_window, aw_surf, aw_cr, ac);
+                        active_window, aw_surf, aw_cr);
 
             }
         }

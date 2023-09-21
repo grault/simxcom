@@ -1,4 +1,4 @@
 (rule
  (targets sim)
  (deps    (:src simxcom.c))
- (action  (run gcc -Wunused-function -g -Wunused -Wall --pedantic -Werror -lX11 -lcairo -lm %{src} -o %{targets})))
+ (action  (run gcc -Wunused-function -g -Wunused -Wall --pedantic -Werror -lX11 -lcairo -lXext -lm %{src} -o %{targets})))
