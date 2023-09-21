@@ -6,9 +6,6 @@
 #include <ctype.h>
 #include <math.h>
 
-#include <cairo/cairo.h>
-#include <cairo/cairo-xlib.h>
-
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -50,15 +47,7 @@ void query_net_client_list(Display *display, Window root, unsigned long *n_windo
         &format, n_windows, &extra, &result);
 }
 
-void draw_rectangle(cairo_t *cr, int x, int y, int w, int h, Color c)
-{
-    cairo_set_source_rgba(cr, c.red, c.green, c.blue, c.alpha);
-    cairo_rectangle(cr, x, y, w, h);
-    cairo_fill(cr);
-}
-
-Window overlay_active(Display *display, Window root, XVisualInfo vinfo,
-    Window active, cairo_surface_t* surf, cairo_t* cr)
+Window overlay_active(Display *display, Window root, XVisualInfo vinfo, Window active)
 {
     Window r;
     int x, y;
@@ -123,12 +112,9 @@ int main(int argc, char **argv)
     query_net_client_list(display, root, (unsigned long *)&n_windows);
 
     Window aw_overlay;
-    cairo_surface_t *aw_surf = NULL;
-    cairo_t *aw_cr = NULL;
 
     if(active_window)
-        aw_overlay = overlay_active(display, root, vinfo, active_window,
-            aw_surf, aw_cr);
+        aw_overlay = overlay_active(display, root, vinfo, active_window);
 
 
     do {
@@ -140,23 +126,18 @@ int main(int argc, char **argv)
             property_event = event.xproperty;
             if(property_event.atom == net_active_window) {
                 if(active_window) { // destroy previous aw_overlay window
-                    cairo_destroy(aw_cr);
-                    cairo_surface_destroy(aw_surf);
                     XDestroyWindow(display, aw_overlay);
                 }
                 active_window = get_active_window(display, root);
                 if(active_window)
-                    aw_overlay = overlay_active(display, root, vinfo,
-                        active_window, aw_surf, aw_cr);
+                    aw_overlay = overlay_active(display, root, vinfo, active_window);
 
             }
         }
     } while(!quit);
 
-    cairo_destroy(aw_cr);
-    cairo_surface_destroy(aw_surf);
     XDestroyWindow(display, aw_overlay);
-
     XCloseDisplay(display);
+
     return EXIT_SUCCESS;
 }
